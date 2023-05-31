@@ -44,7 +44,7 @@ class FabulousFeather:
         self.vane_speed = vane_speed
         self.quill_speed = quill_speed
     
-    def steps(self):
+    def steps(self) -> list:
         '''return steps for the feather
         '''
         
