@@ -138,3 +138,12 @@ ui-tests/.pnp.*
 
 # Full Control related
 *.gcode
+
+# Testing files
+Fabulous-Feathers-Test-cartesian_ellipse_arcXY.ipynb
+Fabulous-Feathers-Test-quill_rachis_perimeterXY.ipynb
+Fabulous-Feathers-Test-quill_rachisXY.ipynb
+Fabulous-Feathers-Test.ipynb
+Fabulous Feathers-old.ipynb
+Fabulous Feathers V2.ipynb
+Fabulous Feathers Batch.ipynb

@@ -47,6 +47,7 @@ class FabulousFeather:
         '''
         
         steps = []
+        steps.append(ExtrusionGeometry(area_model='rectangle', width=self.EW, height=self.EH))
 
         # generate first half of afterfeather
         afterfeather_count = floor(self.afterfeather_length/(self.EW+self.barb_spacing))
