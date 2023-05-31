@@ -20,7 +20,9 @@ class FabulousFeather:
                  afterfeather_length: float,
                  afterfeather_extent: float,
                  z_lift: float,
-                 wipe_distance: float = 5
+                 wipe_distance: float = 5,
+                 vane_speed: float = 10000,
+                 quill_speed: float = 100
                  ) -> None:
         self.start_point = start_point
         self.EW = EW
@@ -39,8 +41,8 @@ class FabulousFeather:
         self.afterfeather_extent = afterfeather_extent
         self.z_lift = z_lift
         self.wipe_distance = wipe_distance
-        
-        pass
+        self.vane_speed = vane_speed
+        self.quill_speed = quill_speed
     
     def steps(self):
         '''return steps for the feather
@@ -48,6 +50,7 @@ class FabulousFeather:
         
         steps = []
         steps.append(ExtrusionGeometry(area_model='rectangle', width=self.EW, height=self.EH))
+        steps.append(Printer(print_speed=self.vane_speed))
 
         # generate first half of afterfeather
         afterfeather_count = floor(self.afterfeather_length/(self.EW+self.barb_spacing))
@@ -167,7 +170,7 @@ class FabulousFeather:
             rachis_steps.extend(rachis_layer_steps)
             
 
-        steps.append(Printer(print_speed=100))
+        steps.append(Printer(print_speed=self.quill_speed))
         steps.extend(rachis_steps)
 
         steps = move(steps, Vector(x=self.start_point.x, y=self.start_point.y))
