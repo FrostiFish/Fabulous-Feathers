@@ -1,0 +1,5 @@
+# Fabulous-Feathers
+
+This is Fabulous Feathers, a parametric software tool for Fused Filament Fabrication (FFF) 3D-printed hair structures embodied in a feather. With the use of the Full Control Python library, a software tool was created through which a variety of 3D-printable feather designs can be generated. The feather serves as a proof of concept for the printing of fine hair structures at home, as well as a demonstrator of the design possibilities of Full Control. 
+Traditionally, the design pipeline for FFF 3D printing involves going back and forth between CAD, slicer and printing to achieve the desired result. Full Control enables precise control of the printing process, allowing fine details to be printed successfully and more effectively eliminating errors in the design, by veering from the traditional pipeline.
+In contrast to the existing literature about 3D-printed FFF wearable materials, this project provides a demonstration of a fully open-source parametric FFF design, enabling other designers to replicate the design. It is a contemporary example of 3D-printable open-source design for the design community.
