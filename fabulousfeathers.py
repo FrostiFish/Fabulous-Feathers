@@ -21,7 +21,7 @@ class FabulousFeather:
                  afterfeather_extent: float,
                  z_lift: float,
                  wipe_distance: float = 5,
-                 vane_speed: float = 10000,
+                 vane_speed: float = 1000,
                  quill_speed: float = 100
                  ) -> None:
         self.start_point = start_point
