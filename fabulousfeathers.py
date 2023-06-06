@@ -1,6 +1,7 @@
 from fullcontrol import Point, travel_to, ExtrusionGeometry, Printer, Vector, move, PrinterCommand
 from math import floor
 from fabuloushelpers import vaneXY, cartesian_ellipse_arcXY, single_line_quill_rachisXY
+from z_lift import z_lift
 
 class FabulousFeather:
     def __init__(self, 
@@ -128,12 +129,7 @@ class FabulousFeather:
                 steps.append(PrinterCommand(id='retract'))
 
         # lift z
-        steps.extend(travel_to(Point(x=steps[-2].x, 
-                                     y=steps[-2].y, 
-                                     z=steps[-2].z+self.z_lift
-                                     )
-                               )
-                     )
+        steps.extend(z_lift(steps, self.z_lift))
 
         # generate rachis and quill
         rachis_steps = []
@@ -171,12 +167,7 @@ class FabulousFeather:
                 rachis_layer_steps.append(PrinterCommand(id='retract'))
 
             # lift z
-            rachis_layer_steps.extend(travel_to(Point(x=rachis_layer_steps[-3].x, 
-                                                      y=rachis_layer_steps[-3].y, 
-                                                      z=rachis_layer_steps[-3].z+self.z_lift
-                                                      )
-                                                )
-                                      )
+            rachis_layer_steps.extend(z_lift(rachis_layer_steps, self.z_lift))
             rachis_steps.extend(rachis_layer_steps)
             
 
