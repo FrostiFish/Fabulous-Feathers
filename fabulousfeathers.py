@@ -1,4 +1,4 @@
-from fullcontrol import Point, travel_to, ExtrusionGeometry, Printer, Vector, move
+from fullcontrol import Point, travel_to, ExtrusionGeometry, Printer, Vector, move, PrinterCommand
 from math import floor
 from fabuloushelpers import vaneXY, cartesian_ellipse_arcXY, single_line_quill_rachisXY
 
@@ -20,9 +20,10 @@ class FabulousFeather:
                  afterfeather_length: float,
                  afterfeather_extent: float,
                  z_lift: float,
-                 wipe_distance: float = 5,
+                 wipe_distance: float = 0,
                  vane_speed: float = 1000,
-                 quill_speed: float = 100
+                 quill_speed: float = 100,
+                 retraction: bool = False
                  ) -> None:
         self.start_point = start_point
         self.EW = EW
@@ -43,6 +44,7 @@ class FabulousFeather:
         self.wipe_distance = wipe_distance
         self.vane_speed = vane_speed
         self.quill_speed = quill_speed
+        self.retraction = retraction
     
     def steps(self) -> list:
         '''return steps for the feather
@@ -121,11 +123,14 @@ class FabulousFeather:
         postvane_afterfeather_steps = vaneXY(reflected_afterfeather_inner_geometry, reflected_afterfeather_outer_geometry)
 
         steps.extend(postvane_afterfeather_steps)
+        
+        if self.retraction:
+                steps.append(PrinterCommand(id='retract'))
 
         # lift z
-        steps.extend(travel_to(Point(x=steps[-1].x, 
-                                     y=steps[-1].y, 
-                                     z=steps[-1].z+self.z_lift
+        steps.extend(travel_to(Point(x=steps[-2].x, 
+                                     y=steps[-2].y, 
+                                     z=steps[-2].z+self.z_lift
                                      )
                                )
                      )
@@ -143,6 +148,8 @@ class FabulousFeather:
                                                 )
                                           )
                                 )
+            if self.retraction:
+                rachis_layer_steps.append(PrinterCommand(id='unretract'))
             # draw rachis layer
             rachis_layer_steps.extend(single_line_quill_rachisXY(Point(x=0, y=0, z=self.EH+layer*self.quill_EH), 
                                                                  quill_length=self.quill_length+self.afterfeather_length, 
@@ -159,11 +166,14 @@ class FabulousFeather:
                                                       )
                                                 )
                                       )
+            
+            if self.retraction:
+                rachis_layer_steps.append(PrinterCommand(id='retract'))
 
             # lift z
-            rachis_layer_steps.extend(travel_to(Point(x=rachis_layer_steps[-2].x, 
-                                                      y=rachis_layer_steps[-2].y, 
-                                                      z=rachis_layer_steps[-2].z+self.z_lift
+            rachis_layer_steps.extend(travel_to(Point(x=rachis_layer_steps[-3].x, 
+                                                      y=rachis_layer_steps[-3].y, 
+                                                      z=rachis_layer_steps[-3].z+self.z_lift
                                                       )
                                                 )
                                       )
