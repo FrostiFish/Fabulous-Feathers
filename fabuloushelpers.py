@@ -1,7 +1,8 @@
-from fullcontrol import Point, Extruder, ExtrusionGeometry, Vector, move, move_polar, Union
+from fullcontrol import Point, Extruder, ExtrusionGeometry, Vector, move, move_polar, Union, PrinterCommand, travel_to
 from math import cos, sin, pi, tau, sqrt, floor
+from z_lift import z_lift
 
-def vaneXY(start_geometry: Union[Point, list], end_geometry: Union[Point, list], vector: Vector=Vector()):
+def vaneXY(start_geometry: Union[Point, list], end_geometry: Union[Point, list], vector: Vector=Vector()) -> list:
     '''generate barbs
     '''
     steps = []
@@ -17,7 +18,7 @@ def vaneXY(start_geometry: Union[Point, list], end_geometry: Union[Point, list],
     
     return move(steps, vector)
 
-def cartesian_ellipse_arcXY(centre: Point, a: float, b: float, start_percentage: float=0.0, end_percentage: float=1.0, segments: int=100, mirror: bool=False):
+def cartesian_ellipse_arcXY(centre: Point, a: float, b: float, start_percentage: float=0.0, end_percentage: float=1.0, segments: int=100, mirror: bool=False) -> list:
     '''generate a partial ellipse, based on cartesian definition of an ellipse y = b/a * sqrt(a^2 - x^2). By default it will generate half an ellipse above the X-axis. 
     '''
     steps = []
@@ -43,12 +44,12 @@ def cartesian_ellipse_arcXY(centre: Point, a: float, b: float, start_percentage:
 
     return steps
 
-def cartesian_ellipse_arcXYpolar(centre: Point, direction_polar: float, a: float, b: float, start_percentage: float=0.0, end_percentage: float=1.0, segments: int=100):
+def cartesian_ellipse_arcXYpolar(centre: Point, direction_polar: float, a: float, b: float, start_percentage: float=0.0, end_percentage: float=1.0, segments: int=100) -> list:
     steps = []
     steps.extend(cartesian_ellipse_arcXY(centre, a, b, start_percentage, end_percentage, segments))
     return move_polar(steps, centre, 0, direction_polar)
 
-def cartesian_ellipseXY(centre: Point, a: float, b: float, segments: int=100, cw: bool=True):
+def cartesian_ellipseXY(centre: Point, a: float, b: float, segments: int=100, cw: bool=True) -> list:
     '''generate an ellipse, based on cartesian definition of an ellipse using y = b/a * sqrt(a^2 - x^2)
     '''
     steps = []
@@ -67,7 +68,7 @@ def cartesian_ellipseXY(centre: Point, a: float, b: float, segments: int=100, cw
 
     return steps
 
-def ellipse_arcXY(centre: Point, a: float, b: float, start_angle: float, arc_angle: float, segments: int=100):
+def ellipse_arcXY(centre: Point, a: float, b: float, start_angle: float, arc_angle: float, segments: int=100) -> list:
     '''generate a partial ellipse based on trigonometric definition of an ellipse x = a*cos(t), y = b*sin(t), by default it will have 100 segments
     '''
     steps = []
@@ -79,7 +80,7 @@ def ellipse_arcXY(centre: Point, a: float, b: float, start_angle: float, arc_ang
 
     return steps
 
-def ellipseXY(centre: Point, a: float, b: float, start_angle: float, segments: int=100, cw: bool=False):
+def ellipseXY(centre: Point, a: float, b: float, start_angle: float, segments: int=100, cw: bool=False) -> list:
     '''generate an ellipse based on trigonometric definition of an ellipse x = a*cos(t), y = b*sin(t), by default it will have 100 segments and be drawn counter-clockwise
     '''
     steps = []
@@ -100,7 +101,7 @@ def _quill_rachis_perimeterXY(
     segments: int=100, 
     start_offset: float=0.0, 
     end_offset: float=0.0
-    ):
+    ) -> list:
     '''generate perimeter for the quill and rachis geometry
     '''
     steps = []
@@ -117,7 +118,9 @@ def _quill_rachis_perimeterXY(
 
     return steps
 
-def quill_rachisXY(start_point: Point, quill_length: float, quill_width: float, rachis_length: float, extrusion_width: float, segments: int=100):
+def quill_rachisXY(start_point: Point, quill_length: float, quill_width: float, rachis_length: float, extrusion_width: float, segments: int=100) -> list:
+    '''generate multi-line quill + rachis
+    '''
     steps = []
     final_quill_length = quill_length-extrusion_width/2
     final_quill_width = quill_width-extrusion_width
@@ -143,8 +146,11 @@ def single_line_quill_rachisXY(
     quill_width: float, 
     rachis_length: float, 
     max_extrusion_width: float=1.0, 
-    segments: int=100
-    ):
+    segments: int=100,
+    reverse: bool=True
+    ) -> list:
+    '''generate steps for printing a single line layer quill + rachis, width varying extrusion width
+    '''
     steps = []
 
     if quill_width > max_extrusion_width:
@@ -158,15 +164,90 @@ def single_line_quill_rachisXY(
                                                  segments=segments
                                                  )
 
-    for point in perimeter_geometry:
-        #print("extrusion width=", str(2*point.y))
-        steps.append(ExtrusionGeometry(width=2*point.y))
-        steps.append(Point(x=point.x+start_point.x+quill_length,
-                           y=start_point.y,
-                           z=start_point.z
-                           )
-                    )
+    if reverse:
+        steps.append(Point(x=start_point.x, y=start_point.y, z=start_point.z))
+        for point in reversed(perimeter_geometry):
+            #print("extrusion width=", str(2*point.y))
+            steps.append(ExtrusionGeometry(width=2*point.y))
+            steps.append(Point(x=point.x+start_point.x+quill_length,
+                            y=start_point.y,
+                            z=start_point.z
+                            )
+                        )
     
-    steps.append(Point(x=start_point.x, y=start_point.y, z=start_point.z))
+    else:
+        for point in perimeter_geometry:
+            #print("extrusion width=", str(2*point.y))
+            steps.append(ExtrusionGeometry(width=2*point.y))
+            steps.append(Point(x=point.x+start_point.x+quill_length,
+                            y=start_point.y,
+                            z=start_point.z
+                            )
+                        )
+        steps.append(Point(x=start_point.x, y=start_point.y, z=start_point.z))
 
     return steps
+
+def single_line_quill_rachis3D(
+    start_point: Point, 
+    quill_length: float, 
+    quill_width: float, 
+    quill_height: float,
+    EH: float,
+    rachis_length: float, 
+    afterfeather_length: float = 0,
+    max_extrusion_width: float=1.0, 
+    segments: int=100,
+    z_lift: float = 0
+    ) -> list:
+    '''[WORK IN PROGRESS] 3D single line quill + rachis 
+    '''
+    
+    # generate rachis and quill
+    rachis_steps = []
+    rachis_steps.append(ExtrusionGeometry(height=EH))
+    
+        # travel to begin of rachis
+    rachis_steps.extend(travel_to(Point(x=quill_length+afterfeather_length+rachis_length, 
+                                        y=0, 
+                                        z=start_point.z+z_lift
+                                        )
+                                    )
+                        )
+    rachis_steps.extend(travel_to(Point(x=quill_length+afterfeather_length+rachis_length, 
+                                        y=0, 
+                                        z=start_point.z
+                                        )
+                                    )
+                        )
+    
+    for  layer in range(segments):
+        # find x in an ellipse: x = a/b * sqrt(b^2 - y^2)
+        # use to get x for rachis_length (to get a rounded tip) and quill_width (to get rounded quill)
+        z=quill_height*layer/(segments)
+        x = rachis_length/(quill_height) * sqrt((quill_height)**2 - z**2)
+        
+        #print('height: '+ str(z))
+    
+        if quill_width > max_extrusion_width:
+            raise Exception("quill_width exceeds max_extrusion_width, decrease quill_width. If 3d printer is capable of extruding wider lines, increase max_extrusion_width accordingly")
+
+        perimeter_geometry = cartesian_ellipse_arcXY(Point(x=0, y=0, z=0),
+                                                a=rachis_length,
+                                                b=quill_width/2,
+                                                start_percentage=1.0,
+                                                end_percentage=0.5,
+                                                segments=segments
+                                                )
+
+        for point in perimeter_geometry:
+            rachis_steps.append(ExtrusionGeometry(width=2*point.y, height=z))
+            rachis_steps.append(Point(x=start_point.x+quill_length+x,
+                                y=start_point.y,
+                                z=start_point.z+EH+z
+                                )
+                        )
+
+            rachis_steps.append(Point(x=start_point.x, y=start_point.y, z=start_point.z))
+    return rachis_steps
+    
