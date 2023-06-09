@@ -1,6 +1,8 @@
-from fullcontrol import Point, travel_to, ExtrusionGeometry, Printer, Vector, move
-from math import floor
+from fullcontrol import Point, travel_to, ExtrusionGeometry, Printer, Vector, move, PrinterCommand
+from math import floor, sqrt
 from fabuloushelpers import vaneXY, cartesian_ellipse_arcXY, single_line_quill_rachisXY
+from z_lift import z_lift
+from set_linear_advance import set_linear_advance
 
 class FabulousFeather:
     def __init__(self, 
@@ -20,9 +22,12 @@ class FabulousFeather:
                  afterfeather_length: float,
                  afterfeather_extent: float,
                  z_lift: float,
-                 wipe_distance: float = 5,
+                 wipe_distance: float = 0,
                  vane_speed: float = 1000,
-                 quill_speed: float = 100
+                 quill_speed: float = 100,
+                 retraction: bool = False,
+                 rachis_PA: float = 0.0,
+                 vane_PA: float = 0.8
                  ) -> None:
         self.start_point = start_point
         self.EW = EW
@@ -43,6 +48,69 @@ class FabulousFeather:
         self.wipe_distance = wipe_distance
         self.vane_speed = vane_speed
         self.quill_speed = quill_speed
+        self.retraction = retraction
+        self.rachis_PA = rachis_PA
+        self.vane_PA = vane_PA
+    
+    def planar_rachis_steps(self) -> list:
+        # generate rachis and quill
+        rachis_steps = []
+        rachis_steps.append(ExtrusionGeometry(height=self.quill_EH))
+        rachis_layers = round(self.quill_height/self.quill_EH)
+        for  layer in range(rachis_layers):
+            # find x in an ellipse: x = a/b * sqrt(b^2 - y^2)
+            # use to get x for rachis_length (to get a rounded tip) and quill_width (to get rounded quill)
+            z=self.quill_EH+layer*self.quill_EH
+            round_rachis_length = self.rachis_length/(self.quill_height+self.quill_EH) * sqrt((self.quill_height+self.quill_EH)**2 - (z-self.quill_EH)**2)
+            
+            round_quill_width = (self.quill_width/2)/(self.quill_height+self.quill_EH) * sqrt((self.quill_height+self.quill_EH)**2 - (z-self.quill_EH)**2)*2
+            print('quill_width: '+str(round_quill_width))
+            print('height: '+ str(z))
+            
+            rachis_layer_steps = []
+            # travel to begin of rachis
+            rachis_steps.extend(travel_to(Point(x=0, 
+                                                y=0, 
+                                                z=z+self.z_lift
+                                                )
+                                          )
+                                )
+            rachis_steps.extend(travel_to(Point(x=0, 
+                                                y=0, 
+                                                z=z
+                                                )
+                                          )
+                                )
+            
+            if self.retraction:
+                rachis_layer_steps.append(PrinterCommand(id='unretract'))    
+            
+            
+            # draw rachis layer
+            rachis_layer_steps.extend(single_line_quill_rachisXY(Point(x=0, y=0, z=z), 
+                                                                 quill_length=self.quill_length+self.afterfeather_length, 
+                                                                 quill_width=round_quill_width, 
+                                                                 rachis_length=round_rachis_length,
+                                                                 max_extrusion_width=self.quill_width,
+                                                                 segments=int(self.rachis_length*4),
+                                                                 reverse=True
+                                                                 )
+                            )
+            # wipe nozzle
+            rachis_layer_steps.extend(travel_to(Point(x=rachis_layer_steps[-1].x+self.wipe_distance, 
+                                                      y=rachis_layer_steps[-1].y, 
+                                                      z=rachis_layer_steps[-1].z
+                                                      )
+                                                )
+                                      )
+            
+            if self.retraction:
+                rachis_layer_steps.append(PrinterCommand(id='retract'))
+
+            # lift z
+            rachis_layer_steps.extend(z_lift(rachis_layer_steps, self.z_lift))
+            rachis_steps.extend(rachis_layer_steps)
+        return rachis_steps
     
     def steps(self) -> list:
         '''return steps for the feather
@@ -51,6 +119,7 @@ class FabulousFeather:
         steps = []
         steps.append(ExtrusionGeometry(area_model='rectangle', width=self.EW, height=self.EH))
         steps.append(Printer(print_speed=self.vane_speed))
+        steps.append(set_linear_advance(self.vane_PA))
 
         # generate first half of afterfeather
         afterfeather_count = floor(self.afterfeather_length/(self.EW+self.barb_spacing))
@@ -121,56 +190,17 @@ class FabulousFeather:
         postvane_afterfeather_steps = vaneXY(reflected_afterfeather_inner_geometry, reflected_afterfeather_outer_geometry)
 
         steps.extend(postvane_afterfeather_steps)
+        
+        if self.retraction:
+                steps.append(PrinterCommand(id='retract'))
 
         # lift z
-        steps.extend(travel_to(Point(x=steps[-1].x, 
-                                     y=steps[-1].y, 
-                                     z=steps[-1].z+self.z_lift
-                                     )
-                               )
-                     )
+        steps.extend(z_lift(steps, self.z_lift))
 
-        # generate rachis and quill
-        rachis_steps = []
-        rachis_steps.append(ExtrusionGeometry(height=self.quill_EH))
-        rachis_layers = round(self.quill_height/self.quill_EH)
-        for  layer in range(rachis_layers):
-            rachis_layer_steps = []
-            # travel to begin of rachis
-            rachis_steps.extend(travel_to(Point(x=self.quill_length+self.afterfeather_length+(self.rachis_length+0.25-self.rachis_length/4*layer), 
-                                                y=0, 
-                                                z=(self.quill_EH+layer*self.quill_EH)+self.z_lift
-                                                )
-                                          )
-                                )
-            # draw rachis layer
-            rachis_layer_steps.extend(single_line_quill_rachisXY(Point(x=0, y=0, z=self.EH+layer*self.quill_EH), 
-                                                                 quill_length=self.quill_length+self.afterfeather_length, 
-                                                                 quill_width=self.quill_width-self.quill_width/10*layer, 
-                                                                 rachis_length=self.rachis_length+0.25-self.rachis_length/4*layer ,
-                                                                 max_extrusion_width=self.quill_width,
-                                                                 segments=int(self.rachis_length*4)
-                                                                 )
-                            )
-            # wipe nozzle
-            rachis_layer_steps.extend(travel_to(Point(x=rachis_layer_steps[-1].x+self.wipe_distance, 
-                                                      y=rachis_layer_steps[-1].y, 
-                                                      z=rachis_layer_steps[-1].z
-                                                      )
-                                                )
-                                      )
-
-            # lift z
-            rachis_layer_steps.extend(travel_to(Point(x=rachis_layer_steps[-2].x, 
-                                                      y=rachis_layer_steps[-2].y, 
-                                                      z=rachis_layer_steps[-2].z+self.z_lift
-                                                      )
-                                                )
-                                      )
-            rachis_steps.extend(rachis_layer_steps)
-            
+        rachis_steps = self.thin_rachis_steps()
 
         steps.append(Printer(print_speed=self.quill_speed))
+        steps.append(set_linear_advance(self.rachis_PA))
         steps.extend(rachis_steps)
 
         steps = move(steps, Vector(x=self.start_point.x, y=self.start_point.y))
