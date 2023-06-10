@@ -5,4 +5,7 @@ Traditionally, the design pipeline for FFF 3D printing involves going back and f
 In contrast to the existing literature about 3D-printed FFF wearable materials, this project provides a demonstration of a fully open-source parametric FFF design, enabling other designers to replicate the design. It is a contemporary example of 3D-printable open-source design for the design community.
 
 This design is created using Python, Jupyter Notebook and [Full Control](https://github.com/FullControlXYZ/fullcontrol). For an robust and easy way to manage Python environments, I recommend [Anaconda](https://www.anaconda.com/). To install Full Control, follow the instructions listed in their GitHub repository, or simply install it using this repository's provided Conda Enviroment. For a comprehensive guide on importing and managing Python environments using Anaconda, check out [Managing Environments](https://docs.anaconda.com/free/navigator/tutorials/manage-environments/). You can also install the requirement using pip. Navigate the the Fabulous Feathers directory and run `pip install -r requirements.txt`
+
 To print your own feather, follow the steps in the Fabulous Feathers Jupyer Notebook.
+
+This project is in early access. Contributing is highly encouraged! Create a fork and submit a pull request if you have any proposal to add or change functionality.
