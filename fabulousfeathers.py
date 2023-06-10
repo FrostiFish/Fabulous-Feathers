@@ -18,7 +18,6 @@ class FabulousFeather:
                  quill_width: float,
                  quill_EH: float,
                  quill_height: float,
-                 afterfeather_angle: float,
                  afterfeather_length: float,
                  afterfeather_extent: float,
                  z_lift: float,
@@ -41,7 +40,6 @@ class FabulousFeather:
         self.quill_width = quill_width
         self.quill_EH = quill_EH
         self.quill_height = quill_height
-        self.afterfeather_angle = afterfeather_angle
         self.afterfeather_length = afterfeather_length
         self.afterfeather_extent = afterfeather_extent
         self.z_lift = z_lift
@@ -64,8 +62,6 @@ class FabulousFeather:
             round_rachis_length = self.rachis_length/(self.quill_height+self.quill_EH) * sqrt((self.quill_height+self.quill_EH)**2 - (z-self.quill_EH)**2)
             
             round_quill_width = (self.quill_width/2)/(self.quill_height+self.quill_EH) * sqrt((self.quill_height+self.quill_EH)**2 - (z-self.quill_EH)**2)*2
-            print('quill_width: '+str(round_quill_width))
-            print('height: '+ str(z))
             
             rachis_layer_steps = []
             # travel to begin of rachis
@@ -197,7 +193,7 @@ class FabulousFeather:
         # lift z
         steps.extend(z_lift(steps, self.z_lift))
 
-        rachis_steps = self.thin_rachis_steps()
+        rachis_steps = self.planar_rachis_steps()
 
         steps.append(Printer(print_speed=self.quill_speed))
         steps.append(set_linear_advance(self.rachis_PA))
