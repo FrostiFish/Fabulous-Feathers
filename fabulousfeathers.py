@@ -25,8 +25,8 @@ class FabulousFeather:
                  vane_speed: float = 1000,
                  quill_speed: float = 100,
                  retraction: bool = False,
-                 rachis_PA: float = 0.0,
-                 vane_PA: float = 0.8
+                 rachis_PA: float|None = None,
+                 vane_PA: float|None = None
                  ) -> None:
         self.start_point = start_point
         self.EW = EW
@@ -115,7 +115,8 @@ class FabulousFeather:
         steps = []
         steps.append(ExtrusionGeometry(area_model='rectangle', width=self.EW, height=self.EH))
         steps.append(Printer(print_speed=self.vane_speed))
-        steps.append(set_linear_advance(self.vane_PA))
+        if self.vane_PA is not None:
+            steps.append(set_linear_advance(self.vane_PA))
 
         # generate first half of afterfeather
         afterfeather_count = floor(self.afterfeather_length/(self.EW+self.barb_spacing))
@@ -196,7 +197,8 @@ class FabulousFeather:
         rachis_steps = self.planar_rachis_steps()
 
         steps.append(Printer(print_speed=self.quill_speed))
-        steps.append(set_linear_advance(self.rachis_PA))
+        if self.rachis_PA is not None:
+            steps.append(set_linear_advance(self.rachis_PA))
         steps.extend(rachis_steps)
 
         steps = move(steps, Vector(x=self.start_point.x, y=self.start_point.y))
