@@ -166,6 +166,7 @@ def single_line_quill_rachisXY(
 
     if reverse:
         steps.append(Point(x=start_point.x, y=start_point.y, z=start_point.z))
+        steps.append(Point(x=start_point.x+1, y=start_point.y, z=start_point.z))
         for point in reversed(perimeter_geometry):
             #print("extrusion width=", str(2*point.y))
             steps.append(ExtrusionGeometry(width=2*point.y))
